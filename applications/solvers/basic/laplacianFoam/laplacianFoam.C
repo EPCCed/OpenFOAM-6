@@ -59,17 +59,17 @@ int main(int argc, char *argv[])
     {
         #include "createCouplings.H"
 
-    	simple = new simpleControl
+        simple = new simpleControl
         (
             mesh,
-			"SIMPLE",
-			twoDInterfaces,
-			threeDInterfaces
+            "SIMPLE",
+            twoDInterfaces,
+            threeDInterfaces
         );
     }
     else
     {
-    	simple = new simpleControl
+        simple = new simpleControl
         (
             mesh
         );

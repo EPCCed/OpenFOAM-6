@@ -66,6 +66,10 @@ private:
         bool send;
         bool receive;
         bool smartSend;
+        vector dom_send_start;
+        vector dom_send_end;
+        vector dom_rcv_start;
+        vector dom_rcv_end;
     };
 
     word domainName_;
@@ -74,19 +78,26 @@ private:
     List<bool> send_;
     List<bool> receive_;
     List<bool> smart_send_;
+    List<vector> dom_send_start_;
+    List<vector> dom_send_end_;
+    List<vector> dom_rcv_start_;
+    List<vector> dom_rcv_end_;
 
 public:
 
     // Constructors
 
-        //- Construct without explicit domain size
         coupling2d
         (
             word domainName,
             List<word>& interfaceNames,
             List<bool>& send,
             List<bool>& receive,
-            List<bool>& smart_send
+            List<bool>& smart_send,
+            List<vector>& dom_send_start,
+            List<vector>& dom_send_end,
+            List<vector>& dom_rcv_start,
+            List<vector>& dom_rcv_end
         );
 
     // Destructor
@@ -103,17 +114,19 @@ public:
         bool getInterfaceReceiveStatus(int index) const;
         bool getInterfaceSmartSendStatus(int index) const;
         bool getInterfaceExtentsStatus(int index) const;
+        vector getInterfaceSendDomStart(int index) const;
+        vector getInterfaceSendDomEnd(int index) const;
+        vector getInterfaceReceiveDomStart(int index) const;
+        vector getInterfaceReceiveDomEnd(int index) const;
 };
 
 struct couplingInterface2d
 {
     word domainName;
     scalar refLength;
-	scalar refTime;
+    scalar refTime;
     coupling2d* interfaces;
 };
-
-} // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
