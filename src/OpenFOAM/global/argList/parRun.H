@@ -64,11 +64,11 @@ public:
         }
     }
 
-    void runPar(int& argc, char**& argv, const bool needsThread)
+    void runPar(int& argc, char**& argv, const bool needsThread, bool coupled=false)
     {
         RunPar = true;
 
-        if (!Pstream::init(argc, argv, needsThread))
+        if (!Pstream::init(argc, argv, needsThread, coupled))
         {
             Info<< "Failed to start parallel run" << endl;
             Pstream::exit(1);

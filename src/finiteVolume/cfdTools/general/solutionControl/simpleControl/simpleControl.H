@@ -50,6 +50,10 @@ SourceFiles
 #include "fluidSolutionControl.H"
 #include "singleRegionConvergenceControl.H"
 
+#ifdef USE_MUI // included if the switch -DUSE_MUI included during compilation.
+  #include "fvCoupling.H"
+#endif
+
 #define SIMPLE_CONTROL
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -77,7 +81,20 @@ public:
     // Constructors
 
         //- Construct from a mesh and the name of the algorithm
-        simpleControl(fvMesh& mesh, const word& algorithmName="SIMPLE");
+        simpleControl
+        (
+		    fvMesh& mesh,
+		    const word& algorithmName="SIMPLE"
+        );
+
+        //- Construct from a mesh and the name of the algorithm
+        simpleControl
+        (
+		    fvMesh& mesh,
+		    const word& algorithmName,
+            couplingInterface2d& twoDInterfaces,
+            couplingInterface3d& threeDInterfaces
+        );
 
 
     //- Destructor

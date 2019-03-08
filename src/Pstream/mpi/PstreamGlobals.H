@@ -59,6 +59,9 @@ namespace PstreamGlobals
 
     extern DynamicList<int> freedTags_;
 
+    //Default MPI communicator (either allocated by MUI if in use or becomes MPI_COMM_WORLD)
+    extern MPI_Comm commWorld_;
+
     // Current communicators. First element will be MPI_COMM_FOAM
     extern DynamicList<MPI_Comm> MPICommunicators_;
 

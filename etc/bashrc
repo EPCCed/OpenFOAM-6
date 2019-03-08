@@ -172,6 +172,7 @@ _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config.sh/mpi`
 _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config.sh/paraview`
 _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config.sh/ensight`
 _foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config.sh/gperftools`
+_foamSource `$WM_PROJECT_DIR/bin/foamEtcFile config.sh/MUI`
 
 if [ ! -z "$FOAMY_HEX_MESH" ]
 then

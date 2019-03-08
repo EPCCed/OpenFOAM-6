@@ -366,7 +366,7 @@ public:
 
         //- Initialisation function called from main
         //  Spawns slave processes and initialises inter-communication
-        static bool init(int& argc, char**& argv, const bool needsThread);
+        static bool init(int& argc, char**& argv, const bool needsThread, bool coupled=false);
 
         // Non-blocking comms
 

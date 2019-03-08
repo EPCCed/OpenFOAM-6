@@ -30,8 +30,14 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
+#ifdef USE_MUI // included if the switch -DUSE_MUI included during compilation.
+  #include "fvCoupling.H"
+#endif
 #include "fvOptions.H"
 #include "simpleControl.H"
+#ifdef USE_MUI // included if the switch -DUSE_MUI included during compilation.
+    #include "mui.h"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -42,7 +48,38 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createMesh.H"
 
-    simpleControl simple(mesh);
+#ifdef USE_MUI // included if the switch -DUSE_MUI included during compilation.
+  	#include "createCouplingData.H"
+#endif
+
+    simpleControl* simple;
+
+#ifdef USE_MUI
+    if (args.cplRunControl().cplRun())
+    {
+        #include "createCouplings.H"
+
+    	simple = new simpleControl
+        (
+            mesh,
+			"SIMPLE",
+			twoDInterfaces,
+			threeDInterfaces
+        );
+    }
+    else
+    {
+    	simple = new simpleControl
+        (
+            mesh
+        );
+    }
+#else
+    simple = new simpleControl
+    (
+        mesh
+    );
+#endif
 
     #include "createFields.H"
 
@@ -50,11 +87,11 @@ int main(int argc, char *argv[])
 
     Info<< "\nCalculating temperature distribution\n" << endl;
 
-    while (simple.loop(runTime))
+    while (simple->loop(runTime))
     {
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        while (simple.correctNonOrthogonal())
+        while (simple->correctNonOrthogonal())
         {
             fvScalarMatrix TEqn
             (
@@ -76,6 +113,10 @@ int main(int argc, char *argv[])
     }
 
     Info<< "End\n" << endl;
+
+#ifdef USE_MUI // included if the switch -DUSE_MUI included during compilation.
+    #include "deleteCouplings.H"
+#endif
 
     return 0;
 }

@@ -1,0 +1,49 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  6
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      couplingDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+couplingName	domain2; //Coupling domain name
+refLength	1;  //Length reference value for anything used in the coupling interfaces
+refTime		1;  //Time reference value for anything used in the coupling interfaces
+
+couplingConfigurations
+( 
+    TwoDInterfaces //2D coupling interfaces
+    {
+
+    }
+
+    ThreeDInterfaces //3D coupling interfaces
+    {
+	interface_1
+	{
+	    sending	yes;
+	    receiving	yes;
+	    smart_send	yes;
+	}
+
+        interface_2
+	{
+	    sending	yes;
+	    receiving	yes;
+	    smart_send	yes;
+	}
+    }
+);
+
+// ************************************************************************* //

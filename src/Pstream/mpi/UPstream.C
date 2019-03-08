@@ -40,6 +40,12 @@ Note
 #include <cstdlib>
 #include <csignal>
 
+// NOTE:
+// MUI header included if the switch -DUSE_MUI included during compilation.
+#ifdef USE_MUI
+    #include "mui.h"
+#endif
+
 #if defined(WM_SP)
     #define MPI_SCALAR MPI_FLOAT
 #elif defined(WM_DP)
@@ -65,38 +71,59 @@ void Foam::UPstream::addValidParOptions(HashTable<string>& validParOptions)
 }
 
 
-bool Foam::UPstream::init(int& argc, char**& argv, const bool needsThread)
+bool Foam::UPstream::init(int& argc, char**& argv, const bool needsThread, bool coupled)
 {
-    // MPI_Init(&argc, &argv);
-    int provided_thread_support;
-    MPI_Init_thread
-    (
-        &argc,
-        &argv,
-        (
-            needsThread
-          ? MPI_THREAD_MULTIPLE
-          : MPI_THREAD_SINGLE
-        ),
-        &provided_thread_support
-    );
+	int provided_thread_support;
 
-    // int numprocs;
-    // MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
-    // int myRank;
-    // MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+	if(coupled)
+	{
+		#ifdef USE_MUI
+			//Use world returned by MUI, based on MPI MPMD model, calls MPI_Init_thread inside MUI function
+			PstreamGlobals::commWorld_ = mui::mpi_split_by_app(argc, argv, (needsThread ? MPI_THREAD_MULTIPLE : MPI_THREAD_SINGLE), &provided_thread_support);
+		#else
+			PstreamGlobals::commWorld_ = MPI_COMM_WORLD;
 
-    int myGlobalRank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &myGlobalRank);
-    MPI_Comm_split
-    (
-        MPI_COMM_WORLD,
-        1,
-        myGlobalRank,
-        &PstreamGlobals::MPI_COMM_FOAM
-    );
+			MPI_Init_thread
+			(
+				&argc,
+				&argv,
+				(
+					needsThread
+				  ? MPI_THREAD_MULTIPLE
+				  : MPI_THREAD_SINGLE
+				),
+				&provided_thread_support
+			);
+		#endif
+	}
+	else
+	{
+		PstreamGlobals::commWorld_ = MPI_COMM_WORLD;
 
-    int numprocs;
+		MPI_Init_thread
+		(
+			&argc,
+			&argv,
+			(
+				needsThread
+			  ? MPI_THREAD_MULTIPLE
+			  : MPI_THREAD_SINGLE
+			),
+			&provided_thread_support
+		);
+	}
+
+	int myGlobalRank;
+	MPI_Comm_rank(PstreamGlobals::commWorld_, &myGlobalRank);
+	MPI_Comm_split
+	(
+		PstreamGlobals::commWorld_,
+		1,
+		myGlobalRank,
+		&PstreamGlobals::MPI_COMM_FOAM
+	);
+
+	int numprocs;
     MPI_Comm_size(PstreamGlobals::MPI_COMM_FOAM, &numprocs);
     int myRank;
     MPI_Comm_rank(PstreamGlobals::MPI_COMM_FOAM, &myRank);
