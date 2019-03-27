@@ -1,0 +1,13 @@
+To compile OpenFOAM on ARCHER execute the following commands.
+
+module swap PrgEnv-cray PrgEnv-gnu
+module add cmake
+module add boost
+
+export CRAYPE_LINK_TYPE=dynamic
+export CRAY_ADD_RPATH=yes
+
+source etc/bashrc
+
+./Allwmake > openfoam-build.log 2> openfoam-err.log
+
