@@ -128,6 +128,7 @@ struct couplingInterface2d
     coupling2d* interfaces;
 };
 
+}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif
