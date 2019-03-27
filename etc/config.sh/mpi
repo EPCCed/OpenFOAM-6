@@ -53,6 +53,11 @@ SYSTEMOPENMPI)
     unset libDir
     ;;
 
+CRAYMPICH)
+    export FOAM_MPI=mpich2
+    export MPI_ARCH_PATH=$MPICH_DIR
+    ;;
+
 OPENMPI)
     export FOAM_MPI=openmpi-2.1.1
     # Optional configuration tweaks:
