@@ -88,24 +88,16 @@
             twoDInterfaces.domainName = mainCouplingName;
             threeDInterfaces.domainName = mainCouplingName;
 
-            scalar refLength;
+            scalar refLength = 1.0;
 
-            if (!(couplingDict.readIfPresent("refLength", refLength)))
-            {
-                FatalIOErrorIn("", couplingDict)
-                               << "Missing refLength entry" << exit(FatalIOError);
-            }
+            couplingDict.readIfPresent("refLength", refLength);
 
             twoDInterfaces.refLength = refLength;
             threeDInterfaces.refLength = refLength;
 
-            scalar refTime;
+            scalar refTime = 1.0;
 
-            if (!(couplingDict.readIfPresent("refTime", refTime)))
-            {
-                FatalIOErrorIn("", couplingDict)
-                               << "Missing refTime entry" << exit(FatalIOError);
-            }
+            couplingDict.readIfPresent("refTime", refTime);
 
             twoDInterfaces.refTime = refTime;
             threeDInterfaces.refTime = refTime;
@@ -131,6 +123,7 @@
                 List<vector> rcvStart(iFaceTOC.size());
 				List<vector> rcvEnd(iFaceTOC.size());
                 List<bool> smart_send(iFaceTOC.size());
+                List<bool> iterationCoupling(iFaceTOC.size());
 
                 //Iterate through interfaces
                 forAll(iFaceTOC, cI)
@@ -162,91 +155,13 @@
                     // Smart send enabled and interface set to send so define domain values according to dictionary input
                     if(smart_send[cI] && send[cI])
                     {
-                        bool sendDomDefined = false;
-
-                        if (interfaceDict.found("domainSendStart"))
-                        {
-                            sendStart[cI] = interfaceDict.lookup("domainSendStart");
-                            sendDomDefined = true;
-                        }
-                        else
-                        {
-                            sendDomDefined = false;
-                        }
-
-                        if(sendDomDefined)
-                        {
-                            if (interfaceDict.found("domainSendEnd"))
-                            {
-                                sendEnd[cI] = interfaceDict.lookup("domainSendEnd");
-                            }
-                            else
-                            {
-                                FatalIOErrorIn("", couplingDict)
-                                               << "Missing corresponding interface domainSendEnd entry " << exit(FatalIOError);
-                            }
-
-                            // Both start and end defined for send domain so truncate extents to fit mesh bounds if region not completely outside mesh
-                            if(sendStart[cI][0] < meshMax[0] && sendEnd[cI][0] > meshMin[0] &&
-                               sendStart[cI][1] < meshMax[1] && sendEnd[cI][1] > meshMin[1] &&
-                               sendStart[cI][2] < meshMax[2] && sendEnd[cI][2] > meshMin[2])
-                            {
-                                if(sendStart[cI][0] < meshMin[0]) //Snap to mesh bound minimum - 0.5%
-                                {
-                                    sendStart[cI][0] = meshMin[0] - extents[0]*0.005;
-                                }
-
-                                if(sendEnd[cI][0] > meshMax[0]) //Snap to mesh bound maximum + 0.5%
-                                {
-                                    sendEnd[cI][0] = meshMax[0] + extents[0]*0.005;
-                                }
-
-                                if(sendStart[cI][1] < meshMin[1]) //Snap to mesh bound minimum - 0.5%
-                                {
-                                    sendStart[cI][1] = meshMin[1] - extents[1]*0.005;
-                                }
-
-                                if(sendEnd[cI][1] > meshMax[1]) //Snap to mesh bound maximum + 0.5%
-                                { 
-                                    sendEnd[cI][1] = meshMax[1] + extents[1]*0.005;
-                                }
-
-                                if(sendStart[cI][2] < meshMin[2]) //Snap to mesh bound minimum - 0.5% 
-                                {
-                                    sendStart[cI][2] = meshMin[2] - extents[2]*0.005;
-                                }
-
-                                if(sendEnd[cI][2] > meshMax[2]) //Snap to mesh bound maximum + 0.5%
-                                {
-                                    sendEnd[cI][2] = meshMax[2] + extents[2]*0.005;
-                                }
-                            }
-                            else //Set send region to mesh bounds (this mesh is outside of the sending region so need to avoid overlap with other regions this rank shouldn't interact with)
-                            {
-                                sendStart[cI][0] = meshMin[0];
-                                sendStart[cI][1] = meshMin[1];
-                                sendStart[cI][2] = meshMin[2];
-                                sendEnd[cI][0] = meshMax[0];
-                                sendEnd[cI][1] = meshMax[1];
-                                sendEnd[cI][2] = meshMax[2];
-                            }
-                        }
-                        else
-                        {
-                            if (interfaceDict.found("domainSendEnd"))
-                            {
-                                FatalIOErrorIn("", couplingDict)
-                                               << "Missing corresponding interface domainSendStart entry " << exit(FatalIOError);
-                            }
-
-                            // "domain_send_start" and "domain_send_end" not set in dictionary, so initialise domain values to mesh bounds +/- 0.5%
-                            sendStart[cI][0] = meshMin[0] - extents[0]*0.005;
-                            sendStart[cI][1] = meshMin[1] - extents[1]*0.005;
-                            sendStart[cI][2] = meshMin[2] - extents[2]*0.005;
-                            sendEnd[cI][0] = meshMax[0] + extents[0]*0.005;
-                            sendEnd[cI][1] = meshMax[1] + extents[1]*0.005;
-                            sendEnd[cI][2] = meshMax[2] + extents[2]*0.005;
-                        }
+                        // "domain_send_start" and "domain_send_end" not set in dictionary, so initialise domain values to mesh bounds +/- 1%
+                        sendStart[cI][0] = meshMin[0] + extents[0]*0.01;
+                        sendStart[cI][1] = meshMin[1] + extents[1]*0.01;
+                        sendStart[cI][2] = meshMin[2] + extents[2]*0.01;
+                        sendEnd[cI][0] = meshMax[0] - extents[0]*0.01;
+                        sendEnd[cI][1] = meshMax[1] - extents[1]*0.01;
+                        sendEnd[cI][2] = meshMax[2] - extents[2]*0.01;
                     }
                     else // Smart send not enabled and/or interface not set to send so just initialise domain values to zero as they wont be used
                     {
@@ -271,91 +186,13 @@
                     // Smart send enabled and interface set to receive so define domain values according to dictionary input
                     if(smart_send[cI] && receive[cI])
                     {
-                        bool rcvDomDefined = false;
-
-                        if (interfaceDict.found("domainReceiveStart"))
-                        {
-                            rcvStart[cI] = interfaceDict.lookup("domainReceiveStart");
-                            rcvDomDefined = true;
-                        }
-                        else
-                        {
-                            rcvDomDefined = false;
-                        }
-
-                        if(rcvDomDefined)
-                        {
-                            if (interfaceDict.found("domainReceiveEnd"))
-                            {
-                                rcvEnd[cI] = interfaceDict.lookup("domainReceiveEnd");
-                            }
-                            else
-                            {
-                                FatalIOErrorIn("", couplingDict)
-                                               << "Missing corresponding interface domainReceiveEnd entry " << exit(FatalIOError);
-                            }
-
-                            // Both start and end defined for receive domain so truncate extents to fit mesh bounds if region not completely outside mesh
-                            if(rcvStart[cI][0] < meshMax[0] && rcvEnd[cI][0] > meshMin[0] &&
-                               rcvStart[cI][1] < meshMax[1] && rcvEnd[cI][1] > meshMin[1] &&
-                               rcvStart[cI][2] < meshMax[2] && rcvEnd[cI][2] > meshMin[2])
-                            {
-                                if(rcvStart[cI][0] < meshMin[0]) //Snap to mesh bound minimum - 0.5%
-                                {
-                                    rcvStart[cI][0] = meshMin[0] - extents[0]*0.005;
-                                }
-
-                                if(rcvEnd[cI][0] > meshMax[0]) //Snap to mesh bound maximum + 0.5%
-                                {
-                                    rcvEnd[cI][0] = meshMax[0] + extents[0]*0.005;
-                                }
- 
-                                if(rcvStart[cI][1] < meshMin[1]) //Snap to mesh bound minimum - 0.5%
-                                {
-                                    rcvStart[cI][1] = meshMin[1] - extents[1]*0.005;
-                                }
-
-                                if(rcvEnd[cI][1] > meshMax[1]) //Snap to mesh bound maximum + 0.5%
-                                {
-                                    rcvEnd[cI][1] = meshMax[1] + extents[1]*0.005;
-                                }
-
-                                if(rcvStart[cI][2] < meshMin[2]) //Snap to mesh bound minimum - 0.5%
-                                {
-                                    rcvStart[cI][2] = meshMin[2] - extents[2]*0.005;
-                                }
- 
-                                if(rcvEnd[cI][2] > meshMax[2]) //Snap to mesh bound maximum + 0.5%
-                                {
-                                    rcvEnd[cI][2] = meshMax[2] + extents[2]*0.005;
-                                }
-                            }
-                            else  //Set receive region to mesh bounds (this mesh is outside of the sending region so need to avoid overlap with other regions this rank shouldn't interact with)
-                            {
-                                rcvStart[cI][0] = meshMin[0];
-                                rcvStart[cI][1] = meshMin[1];
-                                rcvStart[cI][2] = meshMin[2];
-                                rcvEnd[cI][0] = meshMax[0];
-                                rcvEnd[cI][1] = meshMax[1];
-                                rcvEnd[cI][2] = meshMax[2];
-                            }
-                        } 
-                        else
-                        {
-                            if (interfaceDict.found("domainReceiveEnd"))
-                            {
-                                FatalIOErrorIn("", couplingDict)
-                                               << "Missing corresponding interface domainReceiveStart entry " << exit(FatalIOError);
-                            }
-
-                            // "domain_receive_start" and "domain_receive_end" not set in dictionary, so initialise domain values to mesh bounds +/- 0.5%
-                            rcvStart[cI][0] = meshMin[0] - extents[0]*0.005;
-                            rcvStart[cI][1] = meshMin[1] - extents[1]*0.005;
-                            rcvStart[cI][2] = meshMin[2] - extents[2]*0.005;
-                            rcvEnd[cI][0] = meshMax[0] + extents[0]*0.005;
-                            rcvEnd[cI][1] = meshMax[1] + extents[1]*0.005;
-                            rcvEnd[cI][2] = meshMax[2] + extents[2]*0.005;
-                        }
+                        // "domain_receive_start" and "domain_receive_end" not set in dictionary, so initialise domain values to mesh bounds +/- 1%
+                        rcvStart[cI][0] = meshMin[0] + extents[0]*0.01;
+                        rcvStart[cI][1] = meshMin[1] + extents[1]*0.01;
+                        rcvStart[cI][2] = meshMin[2] + extents[2]*0.01;
+                        rcvEnd[cI][0] = meshMax[0] - extents[0]*0.01;
+                        rcvEnd[cI][1] = meshMax[1] - extents[1]*0.01;
+                        rcvEnd[cI][2] = meshMax[2] - extents[2]*0.01;
                     }
                     else // Smart send not enabled and/or interface not set to send so just initialise domain values to zero as they wont be used
                     {
@@ -366,19 +203,29 @@
                         rcvEnd[cI][1] = 0;
                         rcvEnd[cI][2] = 0;
                     }
+
+                    if (interfaceDict.found("iterationCoupling"))
+                    {
+                        iterationCoupling[cI] = Switch(interfaceDict.lookup("iterationCoupling"));
+                    }
+                    else
+                    {
+                        FatalIOErrorIn("", couplingDict)
+                                       << "Missing interface iterationCoupling entry" << exit(FatalIOError);
+                    }
                 }
 
                 if(iFaceTOC.size() > 0)
                 {
                     if(couplingConfigIDict.dictName() == "TwoDInterfaces")
                     {
-                        twoDInterfaces.interfaces = new coupling2d(mainCouplingName, interfaceNames, send, receive, smart_send, sendStart, sendEnd, rcvStart, rcvEnd);
+                        twoDInterfaces.interfaces = new coupling2d(mainCouplingName, interfaceNames, send, receive, smart_send, sendStart, sendEnd, rcvStart, rcvEnd, iterationCoupling);
                         twoDCreated = true;
                     }
 
                     if(couplingConfigIDict.dictName() == "ThreeDInterfaces")
                     {
-                    	threeDInterfaces.interfaces = new coupling3d(mainCouplingName, interfaceNames, send, receive, smart_send, sendStart, sendEnd, rcvStart, rcvEnd);
+                    	threeDInterfaces.interfaces = new coupling3d(mainCouplingName, interfaceNames, send, receive, smart_send, sendStart, sendEnd, rcvStart, rcvEnd, iterationCoupling);
                         threeDCreated = true;
                     }
                 }
@@ -416,7 +263,7 @@
                         extentsDir = 0;
                     }
 
-                    //Check mesh is 2D
+                    //Check mesh is 2D or 3D
                     if(extentsDir > 0)
                     {
                         mui::point2d start, end;
@@ -456,7 +303,16 @@
 
                             mui::geometry::box2d region_2d(start, end);
 
-                            twoDInterfaces.interfaces->getInterface(i)->announce_send_span((runTime.startTime().value() / twoDInterfaces.refTime), runTime.endTime().value() / twoDInterfaces.refTime, region_2d);
+                            //- Using iteration based coupling
+                            if(twoDInterfaces.interfaces->getInterfaceItCouplingStatus(i))
+                            {
+                                label totalIter = label((runTime.endTime().value() - runTime.startTime().value()) / runTime.deltaT().value())+1;
+                                twoDInterfaces.interfaces->getInterface(i)->announce_send_span(static_cast<label>(0), totalIter, region_2d);
+                            }
+                            else //- Using direct time based coupling
+                            {
+                                twoDInterfaces.interfaces->getInterface(i)->announce_send_span((runTime.startTime().value() / twoDInterfaces.refTime), (runTime.endTime().value() / twoDInterfaces.refTime), region_2d);
+                            }
                         }
 
                         //Interface is set to receive
@@ -494,14 +350,31 @@
 
                             mui::geometry::box2d region_2d(start, end);
 
-                            twoDInterfaces.interfaces->getInterface(i)->announce_recv_span((runTime.startTime().value() / twoDInterfaces.refTime), runTime.endTime().value() / twoDInterfaces.refTime, region_2d);
+                            //- Using iteration based coupling
+                            if(twoDInterfaces.interfaces->getInterfaceItCouplingStatus(i))
+                            {
+                                label totalIter = label((runTime.endTime().value() - runTime.startTime().value()) / runTime.deltaT().value())+1;
+                                twoDInterfaces.interfaces->getInterface(i)->announce_recv_span(static_cast<label>(0), totalIter, region_2d);
+                            }
+                            else //- Using direct time based coupling
+                            {
+                                twoDInterfaces.interfaces->getInterface(i)->announce_recv_span((runTime.startTime().value() / twoDInterfaces.refTime), (runTime.endTime().value() / twoDInterfaces.refTime), region_2d);
+                            }
                         }
 
-                        mui::chrono_sampler_exact2d chrono_sampler(1e-9);
-
-                        twoDInterfaces.interfaces->getInterface(i)->commit(runTime.startTime().value() / twoDInterfaces.refTime);
-                        twoDInterfaces.interfaces->getInterface(i)->barrier(chrono_sampler.get_lower_bound(runTime.startTime().value() / twoDInterfaces.refTime));
-                        twoDInterfaces.interfaces->getInterface(i)->forget(chrono_sampler.get_upper_bound(runTime.startTime().value() / twoDInterfaces.refTime), true);
+                        //- Using iteration based coupling
+                        if(twoDInterfaces.interfaces->getInterfaceItCouplingStatus(i))
+                        {
+                            label time = -1;
+                            twoDInterfaces.interfaces->getInterface(i)->commit(time);
+                            twoDInterfaces.interfaces->getInterface(i)->forget(true);
+                        }
+                        else //- Using direct time based coupling
+                        {
+                            scalar time = -1;
+                            twoDInterfaces.interfaces->getInterface(i)->commit(time);
+                            twoDInterfaces.interfaces->getInterface(i)->forget(true);
+                        }
                     }
                     else if (extentsDir == 0) //Mesh is 3D
                     {
@@ -553,7 +426,16 @@
 
                             mui::geometry::box3d region_3d(start, end);
 
-                            threeDInterfaces.interfaces->getInterface(i)->announce_send_span((runTime.startTime().value() / threeDInterfaces.refTime), (runTime.endTime().value() / threeDInterfaces.refTime), region_3d);
+                            //- Using iteration based coupling
+                            if(threeDInterfaces.interfaces->getInterfaceItCouplingStatus(i))
+                            {
+                                label totalIter = label((runTime.endTime().value() - runTime.startTime().value()) / runTime.deltaT().value())+1;
+                                threeDInterfaces.interfaces->getInterface(i)->announce_send_span(static_cast<label>(0), totalIter, region_3d);
+                            }
+                            else //- Using direct time based coupling
+                            {
+                                threeDInterfaces.interfaces->getInterface(i)->announce_send_span((runTime.startTime().value() / threeDInterfaces.refTime), (runTime.endTime().value() / threeDInterfaces.refTime), region_3d);
+                            }
                         }
 
                         //Interface is set to receive
@@ -576,14 +458,31 @@
 
                             mui::geometry::box3d region_3d(start, end);
 
-                            threeDInterfaces.interfaces->getInterface(i)->announce_recv_span((runTime.startTime().value() / threeDInterfaces.refTime), (runTime.endTime().value() / threeDInterfaces.refTime), region_3d);
+                            //- Using iteration based coupling
+                            if(threeDInterfaces.interfaces->getInterfaceItCouplingStatus(i))
+                            {
+                                label totalIter = label((runTime.endTime().value() - runTime.startTime().value()) / runTime.deltaT().value())+1;
+                                threeDInterfaces.interfaces->getInterface(i)->announce_recv_span(static_cast<label>(0), totalIter, region_3d);
+                            }
+                            else //- Using direct time based coupling
+                            {
+                                threeDInterfaces.interfaces->getInterface(i)->announce_recv_span((runTime.startTime().value() / threeDInterfaces.refTime), (runTime.endTime().value() / threeDInterfaces.refTime), region_3d);
+                            }
                         }
 
-                        mui::chrono_sampler_exact3d chrono_sampler(1e-9);
-
-                        threeDInterfaces.interfaces->getInterface(i)->commit(runTime.startTime().value() / threeDInterfaces.refTime);
-                        threeDInterfaces.interfaces->getInterface(i)->barrier(chrono_sampler.get_lower_bound(runTime.startTime().value() / threeDInterfaces.refTime));
-                        threeDInterfaces.interfaces->getInterface(i)->forget(chrono_sampler.get_upper_bound(runTime.startTime().value() / threeDInterfaces.refTime), true);
+                        //- Using iteration based coupling
+                        if(threeDInterfaces.interfaces->getInterfaceItCouplingStatus(i))
+                        {
+                            label time = -1;
+                            threeDInterfaces.interfaces->getInterface(i)->commit(time);
+                            threeDInterfaces.interfaces->getInterface(i)->forget(true);
+                        }
+                        else //- Using direct time based coupling
+                        {
+                            scalar time = -1;
+                            threeDInterfaces.interfaces->getInterface(i)->commit(time);
+                            threeDInterfaces.interfaces->getInterface(i)->forget(true);
+                        }
                     }
                     else
                     {
