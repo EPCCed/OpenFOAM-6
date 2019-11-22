@@ -32,16 +32,18 @@ couplingConfigurations
     {
 	interface_1
 	{
-	    sending	yes;
-	    receiving	yes;
-	    smart_send	yes;
+	    sending		yes;
+	    receiving		yes;
+	    smartSend		yes;
+	    iterationCoupling	no; 
 	}
 
         interface_2
 	{
-	    sending	yes;
-	    receiving	yes;
-	    smart_send	yes;
+	    sending		yes;
+	    receiving		yes;
+	    smartSend		yes;
+	    iterationCoupling	no; 
 	}
     }
 );
